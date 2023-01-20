@@ -29,3 +29,9 @@ df <- mutate_all(df, ~ifelse(is.na(.), 0, .))
 df$size <- str_extract(df$beverage_prep, "^(Short|Tall|Grande|Venti|Solo|Doppio)")
 df <- df %>% 
   fill(size, .direction = "down")
+
+### Creating a heatmap of nutrients
+pivot_longer(df[15,], 4:18) %>% 
+  ggplot(aes(y = name, x = 0, fill = value, label = value)) +
+  geom_tile() +
+  geom_text(colour = "white")
