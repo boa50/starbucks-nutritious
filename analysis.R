@@ -30,8 +30,45 @@ df$size <- str_extract(df$beverage_prep, "^(Short|Tall|Grande|Venti|Solo|Doppio)
 df <- df %>% 
   fill(size, .direction = "down")
 
+### Calculating good and bad fats values
+df <- df %>% 
+  mutate(
+    bad_fat_g = trans_fat_g + saturated_fat_g,
+    good_fat_g = total_fat_g - bad_fat_g
+  )
+
 ### Creating a heatmap of nutrients
 pivot_longer(df[15,], 4:18) %>% 
   ggplot(aes(y = name, x = 0, fill = value, label = value)) +
   geom_tile() +
   geom_text(colour = "white")
+
+important_nutrients <- c(
+  "calories",
+  "total_carbohydrates_g",
+  "total_fat_g",
+  "saturated_fat_g",
+  "trans_fat_g",
+  "cholesterol_mg",
+  "protein_g",
+  "sugars_g",
+  "sodium_mg",
+  "caffeine_mg"
+)
+
+get_daily_value <- function(nutrient, value) {
+  return(nutrient)
+}
+
+pivot_longer(df[15,], 4:18)[, c("name", "value")] %>% 
+  filter(name %in% important_nutrients) %>% 
+  arrange(match(name, important_nutrients)) %>% 
+  mutate(dv = get_daily_value(name))
+
+### Creating coffee name texts
+df$beverage_name <- df$beverage_prep %>% 
+  str_replace("^(Short|Tall|Grande|Venti|Solo|Doppio)", "") %>% 
+  trimws() %>% 
+  paste(df$beverage, " (", ., ")", sep = "") %>% 
+  trimws() %>% 
+  str_replace(" \\(\\)", "")
