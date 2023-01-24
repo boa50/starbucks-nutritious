@@ -56,14 +56,52 @@ important_nutrients <- c(
   "caffeine_mg"
 )
 
-get_daily_value <- function(nutrient, value) {
-  return(nutrient)
+### Getting daily value
+get_daily_value <- function(df) {
+  dv <- ifelse(df$name == "calories", df$value / 2000,
+        ifelse(df$name == "total_carbohydrates_g", df$value / 300, 
+        ifelse(df$name == "total_fat_g", df$value / 80,
+        ifelse(df$name == "saturated_fat_g", df$value / 30,
+        ifelse(df$name == "trans_fat_g", df$value / 5,
+        ifelse(df$name == "cholesterol_mg", df$value / 200,
+        ifelse(df$name == "protein_g", df$value / 50,
+        ifelse(df$name == "sugars_g", df$value / 35,
+        ifelse(df$name == "sodium_mg", df$value / 2300,
+        ifelse(df$name == "caffeine_mg", df$value / 400,
+               df$value))))))))))
+  
+  dv <- round(dv * 100) 
+  
+  return(dv)
 }
 
-pivot_longer(df[15,], 4:18)[, c("name", "value")] %>% 
+### Getting representative names
+get_representative_name <- function(df) {
+  representative_names <- ifelse(df$name == "calories", "Calories",
+                          ifelse(df$name == "total_carbohydrates_g", "Carbohydrates (g)",
+                          ifelse(df$name == "total_fat_g", "Total Fat (g)",
+                          ifelse(df$name == "saturated_fat_g", "Saturated Fat (g)",
+                          ifelse(df$name == "trans_fat_g", "Trans Fat (g)",
+                          ifelse(df$name == "cholesterol_mg", "Cholesterol (mg)",
+                          ifelse(df$name == "protein_g", "Protein (g)",
+                          ifelse(df$name == "sugars_g", "Sugars (g)",
+                          ifelse(df$name == "sodium_mg", "Sodium (mg)",
+                          ifelse(df$name == "caffeine_mg", "Caffeine (mg)",
+                                 df$name))))))))))
+  
+  return(representative_names)
+}
+
+pivot_longer(df[1,], 4:18)[, c("name", "value")] %>% 
   filter(name %in% important_nutrients) %>% 
-  arrange(match(name, important_nutrients)) %>% 
-  mutate(dv = get_daily_value(name))
+  arrange(match(name, important_nutrients)) %>%
+  mutate(`Daily Value` = get_daily_value(.),
+         `Daily Value` = ifelse(value == 0, 
+                                "-", 
+                                paste(`Daily Value`, "%", sep = "")),
+         Nutrient = as.character(get_representative_name(.)),
+         Quantity = value)
+
 
 ### Creating coffee name texts
 df$beverage_name <- df$beverage_prep %>% 
