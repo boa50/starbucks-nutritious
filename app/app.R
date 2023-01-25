@@ -7,7 +7,7 @@ library(stringr)
 library(janitor)
 
 ### Preparing the dataset
-df <- read_csv("../dataset/DataDNA Dataset Challenge -- January 2023.csv")
+df <- read_csv("dataset/DataDNA Dataset Challenge -- January 2023.csv")
 
 df <- clean_names(df)
 
@@ -51,8 +51,20 @@ controls_slider <- function(name) {
 }
 
 ui <- fluidPage(
-  titlePanel("What is the most nutritious beverage?"),
-  hr(),
+  fluidRow(
+    column(
+      7,
+      titlePanel("What is the most nutritious beverage?")
+    ),
+    column(
+      1,
+      p(),
+      imageOutput("logo", height = "auto")
+    )
+  ),
+  fluidRow(
+    hr()
+  ),
   
   fluidRow(
     column(
@@ -86,20 +98,28 @@ ui <- fluidPage(
     ),
     column(
       3, offset = 1,
-      "Nutritional table",
-      tableOutput("nutritional_table")
+      htmlOutput("nutritious_table_title"),
+      tableOutput("nutritional_table"),
+      p("Daily values are calculated based on a 2000 calories diet", 
+        style = "color: #9e9e9e;")
     )
   ),
   fluidRow(
-    column(12, p(strong("Controls")))
+    br(),
+    column(12, p(strong("What is important to you?")))
   ),
   fluidRow(
-    controls_slider("Sugar"),
-    controls_slider("Fat"),
-    controls_slider("Sodium"),
     controls_slider("Carbohydrates"),
+    controls_slider("Fat"),
     controls_slider("Protein"),
-    controls_slider("Caffeine")
+    controls_slider("Sugar"),
+    controls_slider("Sodium"),
+    controls_slider("Caffeine"),
+    column(
+      2, 
+      p("All images were obtained from https://www.starbucks.com/menu",
+        style = "color: #9e9e9e;")
+    )
   )
 )
 
@@ -112,18 +132,21 @@ get_beverage_name <- function(df_reactive, position) {
 }
 
 get_beverage_img <- function(df_reactive, position) {
-  if (position == 1) {
-    file_name <- "01.webp"
-    width <- 250
-  } else {
-    file_name <- "02.webp"
-    width <- 150
-  }
+  file_name <- reactive(
+    df_reactive()[{{ position }}, ]$beverage %>% 
+      str_replace("\\(.+\\)" , "") %>% 
+      trimws() %>% 
+      str_replace_all(" ", "_") %>% 
+      tolower() %>% 
+      paste(".webp", sep="")
+  )
+  width <- ifelse(position == 1, 250, 150)
   
   return(
     renderImage({ 
       list(
-        src = file.path("img", file_name),
+        src = file.path("img", file_name()),
+        alt = file_name(),
         width = width
       )
     }, deleteFile = FALSE)
@@ -198,6 +221,13 @@ server <- function(input, output) {
     return(df_scores[order(df_scores$score, decreasing = TRUE), ])
   })
   
+  output$logo <- renderImage({ 
+    list(
+      src = file.path("img", "starbucks_logo.webp"),
+      width = 50
+    )
+  }, deleteFile = FALSE)
+  
   output$nutritious_first_name <- get_beverage_name(df_updated, 1)
   output$nutritious_second_name <- get_beverage_name(df_updated, 2)
   output$nutritious_third_name <- get_beverage_name(df_updated, 3)
@@ -205,6 +235,10 @@ server <- function(input, output) {
   output$nutritious_first_img <- get_beverage_img(df_updated, 1)
   output$nutritious_second_img <- get_beverage_img(df_updated, 2)
   output$nutritious_third_img <- get_beverage_img(df_updated, 3)
+  
+  output$nutritious_table_title <- renderText(
+    paste("<strong>", df_updated()[1, ]$beverage_name, "Nutrients </strong>")
+  )
   
   output$nutritional_table <- renderTable({
     df_nutrients <- pivot_longer(df_updated()[1,], 4:18)[, c("name", "value")] %>%

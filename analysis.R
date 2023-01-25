@@ -110,3 +110,10 @@ df$beverage_name <- df$beverage_prep %>%
   paste(df$beverage, " (", ., ")", sep = "") %>% 
   trimws() %>% 
   str_replace(" \\(\\)", "")
+
+
+test_name <- "Caramel Apple Spice (Without Whipped Cream)"
+str_replace(test_name, "\\(.+\\)" , "") %>% 
+  trimws() %>% 
+  str_replace_all(., " ", "_") %>% 
+  tolower()
