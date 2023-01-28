@@ -167,17 +167,19 @@ important_nutrients <- c(
 )
 
 get_daily_value <- function(df) {
-  dv <- ifelse(df$name == "calories", df$value / 2000,
-        ifelse(df$name == "total_carbohydrates_g", df$value / 300, 
-        ifelse(df$name == "total_fat_g", df$value / 80,
-        ifelse(df$name == "saturated_fat_g", df$value / 30,
-        ifelse(df$name == "trans_fat_g", df$value / 5,
-        ifelse(df$name == "cholesterol_mg", df$value / 200,
-        ifelse(df$name == "protein_g", df$value / 50,
-        ifelse(df$name == "sugars_g", df$value / 35,
-        ifelse(df$name == "sodium_mg", df$value / 2300,
-        ifelse(df$name == "caffeine_mg", df$value / 400,
-               df$value))))))))))
+  dv <- case_when(
+    df$name == "calories" ~ df$value / 2000,
+    df$name == "total_carbohydrates_g" ~ df$value / 300,
+    df$name == "total_fat_g" ~ df$value / 80,
+    df$name == "saturated_fat_g" ~ df$value / 30,
+    df$name == "trans_fat_g" ~ df$value / 5,
+    df$name == "cholesterol_mg" ~ df$value / 200,
+    df$name == "protein_g" ~ df$value / 50,
+    df$name == "sugars_g" ~ df$value / 35,
+    df$name == "sodium_mg" ~ df$value / 2300,
+    df$name == "caffeine_mg" ~ df$value / 400,
+    TRUE ~ df$value
+  )
   
   dv <- round(dv * 100) 
   
@@ -185,17 +187,19 @@ get_daily_value <- function(df) {
 }
 
 get_representative_name <- function(df) {
-  representative_names <- ifelse(df$name == "calories", "Calories",
-                          ifelse(df$name == "total_carbohydrates_g", "Carbohydrates (g)",
-                          ifelse(df$name == "total_fat_g", "Total Fat (g)",
-                          ifelse(df$name == "saturated_fat_g", "Saturated Fat (g)",
-                          ifelse(df$name == "trans_fat_g", "Trans Fat (g)",
-                          ifelse(df$name == "cholesterol_mg", "Cholesterol (mg)",
-                          ifelse(df$name == "protein_g", "Protein (g)",
-                          ifelse(df$name == "sugars_g", "Sugars (g)",
-                          ifelse(df$name == "sodium_mg", "Sodium (mg)",
-                          ifelse(df$name == "caffeine_mg", "Caffeine (mg)",
-                                 df$name))))))))))
+  representative_names <- case_when(
+    df$name == "calories" ~ "Calories",
+    df$name == "total_carbohydrates_g" ~ "Carbohydrates (g)",
+    df$name == "total_fat_g" ~ "Total Fat (g)",
+    df$name == "saturated_fat_g" ~ "Saturated Fat (g)",
+    df$name == "trans_fat_g" ~ "Trans Fat (g)",
+    df$name == "cholesterol_mg" ~ "Cholesterol (mg)",
+    df$name == "protein_g" ~ "Protein (g)",
+    df$name == "sugars_g" ~ "Sugars (g)",
+    df$name == "sodium_mg" ~ "Sodium (mg)",
+    df$name == "caffeine_mg" ~ "Caffeine (mg)",
+    TRUE ~ df$name
+  )
   
   return(representative_names)
 }
@@ -249,9 +253,8 @@ server <- function(input, output) {
                                     "-", 
                                     paste(`Daily Value`, "%", sep = "")),
              Nutrient = get_representative_name(.),
-             Quantity = as.character(value))
-    
-    df_nutrients[, c("Nutrient", "Quantity", "Daily Value")]
+             Quantity = as.character(value)) %>% 
+      select("Nutrient", "Quantity", "Daily Value")
   })
 }
 
