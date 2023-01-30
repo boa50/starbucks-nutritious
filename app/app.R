@@ -6,49 +6,13 @@ library(tidyr)
 library(stringr)
 library(janitor)
 
-### Preparing the dataset
-df <- read_csv("dataset/DataDNA Dataset Challenge -- January 2023.csv")
+source("R/dataset.R")
+source("R/UI.R")
+source("modules/nutritional_table.R")
+source("modules/beverage.R")
 
-df <- clean_names(df)
-
-df$caffeine_mg <- as.numeric(df$caffeine_mg)
-
-df <- mutate_all(df, ~ifelse(is.na(.), 0, .))
-
-df$size <- str_extract(df$beverage_prep, "^(Short|Tall|Grande|Venti|Solo|Doppio)")
-df <- df %>% fill(size, .direction = "down")
-
-df <- df %>% 
-  mutate(
-    bad_fat_g = trans_fat_g + saturated_fat_g,
-    good_fat_g = total_fat_g - bad_fat_g
-  )
-
-df$beverage_name <- df$beverage_prep %>% 
-  str_replace("^(Short|Tall|Grande|Venti|Solo|Doppio)", "") %>% 
-  trimws() %>% 
-  paste(df$beverage, " (", ., ")", sep = "") %>% 
-  trimws() %>% 
-  str_replace(" \\(\\)", "")
-
-df_scores <- df %>%  filter(size %in% c("Tall", "Solo", "Doppio"))
-
-
-### Creating the dashboard
-controls_slider <- function(name) {
-  column(
-    1,
-    sliderInput(
-      tolower({{ name }}), 
-      paste({{ name }}, ":", sep = ""), 
-      min = -1, 
-      max = 1, 
-      value = 0, 
-      step = 0.05, 
-      ticks = FALSE
-    )
-  )
-}
+df <- get_df()
+df_scores <- get_df_scores()
 
 ui <- fluidPage(
   fluidRow(
@@ -70,11 +34,7 @@ ui <- fluidPage(
     column(
       4, align = "center",
       fluidRow(
-        column(
-          12,
-          imageOutput("nutritious_first_img", height = "auto"),
-          p(textOutput("nutritious_first_name"))
-        )
+        column(12, beverageUI("beverage_1"))
       ),
       fluidRow(
         column(
@@ -84,25 +44,11 @@ ui <- fluidPage(
         )
       ),
       fluidRow(
-        column(
-          6,
-          imageOutput("nutritious_second_img", height = "auto"),
-          p(textOutput("nutritious_second_name"))
-        ),
-        column(
-          6,
-          imageOutput("nutritious_third_img", height = "auto"),
-          p(textOutput("nutritious_third_name"))
-        ),
+        column(6, beverageUI("beverage_2")),
+        column(6, beverageUI("beverage_3")),
       ),
     ),
-    column(
-      3, offset = 1,
-      htmlOutput("nutritious_table_title"),
-      tableOutput("nutritional_table"),
-      p("Daily values are calculated based on a 2000 calories diet", 
-        style = "color: #9e9e9e;")
-    )
+    column(3, offset = 1, nutritionalTableUI("nut_table"))
   ),
   fluidRow(
     br(),
@@ -123,89 +69,11 @@ ui <- fluidPage(
   )
 )
 
-get_beverage_name <- function(df_reactive, position) {
-  return(
-    renderText(
-      df_reactive()[{{ position }}, ] %>% pull("beverage_name")
-    )
-  )
-}
-
-get_beverage_img <- function(df_reactive, position) {
-  file_name <- reactive(
-    df_reactive()[{{ position }}, ]$beverage %>% 
-      str_replace("\\(.+\\)" , "") %>% 
-      trimws() %>% 
-      str_replace_all(" ", "_") %>% 
-      tolower() %>% 
-      paste(".webp", sep="")
-  )
-  width <- ifelse(position == 1, 250, 150)
-  
-  return(
-    renderImage({ 
-      list(
-        src = file.path("img", file_name()),
-        alt = file_name(),
-        width = width
-      )
-    }, deleteFile = FALSE)
-  )
-}
-
-important_nutrients <- c(
-  "calories",
-  "total_carbohydrates_g",
-  "total_fat_g",
-  "saturated_fat_g",
-  "trans_fat_g",
-  "cholesterol_mg",
-  "protein_g",
-  "sugars_g",
-  "sodium_mg",
-  "caffeine_mg"
-)
-
-get_daily_value <- function(df) {
-  dv <- case_when(
-    df$name == "calories" ~ df$value / 2000,
-    df$name == "total_carbohydrates_g" ~ df$value / 300,
-    df$name == "total_fat_g" ~ df$value / 80,
-    df$name == "saturated_fat_g" ~ df$value / 30,
-    df$name == "trans_fat_g" ~ df$value / 5,
-    df$name == "cholesterol_mg" ~ df$value / 200,
-    df$name == "protein_g" ~ df$value / 50,
-    df$name == "sugars_g" ~ df$value / 35,
-    df$name == "sodium_mg" ~ df$value / 2300,
-    df$name == "caffeine_mg" ~ df$value / 400,
-    TRUE ~ df$value
-  )
-  
-  dv <- round(dv * 100) 
-  
-  return(dv)
-}
-
-get_representative_name <- function(df) {
-  representative_names <- case_when(
-    df$name == "calories" ~ "Calories",
-    df$name == "total_carbohydrates_g" ~ "Carbohydrates (g)",
-    df$name == "total_fat_g" ~ "Total Fat (g)",
-    df$name == "saturated_fat_g" ~ "Saturated Fat (g)",
-    df$name == "trans_fat_g" ~ "Trans Fat (g)",
-    df$name == "cholesterol_mg" ~ "Cholesterol (mg)",
-    df$name == "protein_g" ~ "Protein (g)",
-    df$name == "sugars_g" ~ "Sugars (g)",
-    df$name == "sodium_mg" ~ "Sodium (mg)",
-    df$name == "caffeine_mg" ~ "Caffeine (mg)",
-    TRUE ~ df$name
-  )
-  
-  return(representative_names)
+get_beverage <- function(df, position) {
+  reactive(df()[{{ position }}, ])
 }
 
 server <- function(input, output) {
-  
   df_updated <- reactive({
     df_scores$score <- (
       # FDA
@@ -232,30 +100,11 @@ server <- function(input, output) {
     )
   }, deleteFile = FALSE)
   
-  output$nutritious_first_name <- get_beverage_name(df_updated, 1)
-  output$nutritious_second_name <- get_beverage_name(df_updated, 2)
-  output$nutritious_third_name <- get_beverage_name(df_updated, 3)
+  beverageServer("beverage_1", get_beverage(df_updated, 1), img_size = "lg")
+  beverageServer("beverage_2", get_beverage(df_updated, 2))
+  beverageServer("beverage_3", get_beverage(df_updated, 3))
   
-  output$nutritious_first_img <- get_beverage_img(df_updated, 1)
-  output$nutritious_second_img <- get_beverage_img(df_updated, 2)
-  output$nutritious_third_img <- get_beverage_img(df_updated, 3)
-  
-  output$nutritious_table_title <- renderText(
-    paste("<strong>", df_updated()[1, ]$beverage_name, "Nutrients </strong>")
-  )
-  
-  output$nutritional_table <- renderTable({
-    df_nutrients <- pivot_longer(df_updated()[1,], 4:18)[, c("name", "value")] %>%
-      filter(name %in% important_nutrients) %>% 
-      arrange(match(name, important_nutrients)) %>%
-      mutate(`Daily Value` = get_daily_value(.),
-             `Daily Value` = ifelse(value == 0, 
-                                    "-", 
-                                    paste(`Daily Value`, "%", sep = "")),
-             Nutrient = get_representative_name(.),
-             Quantity = as.character(value)) %>% 
-      select("Nutrient", "Quantity", "Daily Value")
-  })
+  nutritionalTableServer("nut_table", get_beverage(df_updated, 1))
 }
 
 shinyApp(ui = ui, server = server)
