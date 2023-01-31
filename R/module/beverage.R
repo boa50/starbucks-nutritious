@@ -1,5 +1,4 @@
 get_beverage_name <- function(beverage) {
-  stopifnot(is.reactive(beverage))
   
   return(
     renderText(beverage()$beverage_name)
@@ -8,13 +7,14 @@ get_beverage_name <- function(beverage) {
 
 get_beverage_img <- function(beverage, img_size = "sm") {
   stopifnot(is.reactive(beverage))
-  stopifnot(is.character(img_size))
+  observe({ stopifnot(is.data.frame(beverage())) })
+  stopifnot(img_size %in% c("sm", "lg"))
   
   file_name <- reactive(
-    beverage()$beverage %>% 
-      str_replace("\\(.+\\)" , "") %>% 
+    beverage()$beverage %>%
+      stringr::str_replace("\\(.+\\)" , "") %>% 
       trimws() %>% 
-      str_replace_all(" ", "_") %>% 
+      stringr::str_replace_all(" ", "_") %>% 
       tolower() %>% 
       paste(".webp", sep="")
   )
@@ -23,7 +23,7 @@ get_beverage_img <- function(beverage, img_size = "sm") {
   return(
     renderImage({ 
       list(
-        src = file.path("img", file_name()),
+        src = file.path("www", file_name()),
         alt = file_name(),
         width = width
       )
@@ -32,7 +32,7 @@ get_beverage_img <- function(beverage, img_size = "sm") {
 }
 
 ### Module
-beverageUI <- function(id) {
+beverage_ui <- function(id) {
   ns <- NS(id)
   tagList(
     imageOutput(ns("beverage_img"), height = "auto"),
@@ -40,9 +40,10 @@ beverageUI <- function(id) {
   )
 }
 
-beverageServer <- function(id, beverage, img_size = "sm") {
+beverage_server <- function(id, beverage, img_size = "sm") {
   stopifnot(is.reactive(beverage))
-  stopifnot(is.character(img_size))
+  observe({ stopifnot(is.data.frame(beverage())) })
+  stopifnot(img_size %in% c("sm", "lg"))
   
   moduleServer(
     id,
@@ -52,18 +53,3 @@ beverageServer <- function(id, beverage, img_size = "sm") {
     }
   )
 }
-
-### Testing the module
-# library(shiny)
-# source("dataset.R")
-# df <- reactive(get_df())
-# 
-# ui <- fluidPage(
-#   beverageUI("test")
-# )
-# 
-# server <- function(input, output, session) {
-#   beverageServer("test", df, 1)
-# }
-# 
-# shinyApp(ui, server)

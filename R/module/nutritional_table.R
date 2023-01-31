@@ -12,7 +12,7 @@ important_nutrients <- c(
 )
 
 get_daily_value <- function(df) {
-  dv <- case_when(
+  dv <- dplyr::case_when(
     df$name == "calories" ~ df$value / 2000,
     df$name == "total_carbohydrates_g" ~ df$value / 300,
     df$name == "total_fat_g" ~ df$value / 80,
@@ -32,7 +32,7 @@ get_daily_value <- function(df) {
 }
 
 get_representative_name <- function(df) {
-  representative_names <- case_when(
+  representative_names <- dplyr::case_when(
     df$name == "calories" ~ "Calories",
     df$name == "total_carbohydrates_g" ~ "Carbohydrates (g)",
     df$name == "total_fat_g" ~ "Total Fat (g)",
@@ -52,16 +52,16 @@ get_representative_name <- function(df) {
 get_nutritional_table <- function(beverage) {
   stopifnot(is.data.frame(beverage))
   
-  df_nutrients <- pivot_longer(beverage, 4:18)[, c("name", "value")] %>%
-    filter(name %in% important_nutrients) %>% 
-    arrange(match(name, important_nutrients)) %>%
-    mutate(`Daily Value` = get_daily_value(.),
+  df_nutrients <- tidyr::pivot_longer(beverage, 4:18)[, c("name", "value")] %>%
+    dplyr::filter(name %in% important_nutrients) %>% 
+    dplyr::arrange(match(name, important_nutrients)) %>%
+    dplyr::mutate(`Daily Value` = get_daily_value(.),
            `Daily Value` = ifelse(value == 0, 
                                   "-", 
                                   paste(`Daily Value`, "%", sep = "")),
            Nutrient = get_representative_name(.),
            Quantity = as.character(value)) %>% 
-    select("Nutrient", "Quantity", "Daily Value")
+    dplyr::select("Nutrient", "Quantity", "Daily Value")
 }
 
 get_nutritional_table_title <- function(beverage) {
@@ -71,7 +71,7 @@ get_nutritional_table_title <- function(beverage) {
 }
 
 ### Module
-nutritionalTableUI <- function(id) {
+nutritional_table_ui <- function(id) {
   ns <- NS(id)
   tagList(
     htmlOutput(ns("nutritional_table_title")),
@@ -81,7 +81,7 @@ nutritionalTableUI <- function(id) {
   )
 }
 
-nutritionalTableServer <- function(id, beverage) {
+nutritional_table_server <- function(id, beverage) {
   stopifnot(is.reactive(beverage))
   
   moduleServer(
@@ -101,20 +101,3 @@ nutritionalTableServer <- function(id, beverage) {
     }
   )
 }
-
-### Testing the module
-# library(shiny)
-# source("dataset.R")
-# 
-# df <- reactive(get_df())
-# 
-# ui <- fluidPage(
-#   nutritionalTableUI("nut_table")
-# )
-# 
-# server <- function(input, output, session) {
-#   beverage <- reactive(df()[1, ])
-#   nutritionalTableServer("nut_table", beverage)
-# }
-# 
-# shinyApp(ui, server)
