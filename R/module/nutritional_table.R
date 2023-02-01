@@ -77,7 +77,13 @@ nutritional_table_ui <- function(id) {
     htmlOutput(ns("nutritional_table_title")),
     tableOutput(ns("nutritional_table")),
     p("Daily values are calculated based on a 2000 calories diet", 
-      style = "color: #9e9e9e;")
+      style = "color: #9e9e9e;"),
+    radioGroupButtons(
+      inputId = ns("beverage_size"),
+      label = "Size",
+      choices = c("Short", "Tall", "Grande", "Venti"),
+      selected = "Tall"
+    )
   )
 }
 
@@ -87,16 +93,23 @@ nutritional_table_server <- function(id, beverage) {
   moduleServer(
     id,
     function(input, output, session) {
-      output$nutritional_table_title <- renderText({
-        stopifnot(is.data.frame(beverage()))
-        
-        get_nutritional_table_title(beverage())
-      })
+      observe({ stopifnot(is.data.frame(beverage())) })
       
-      output$nutritional_table <- renderTable({
-        stopifnot(is.data.frame(beverage()))
-        
-        get_nutritional_table(beverage())
+      output$nutritional_table_title <- renderText(  
+        get_nutritional_table_title(beverage())
+      )
+      
+      output$nutritional_table <- renderTable(
+        get_nutritional_table(
+          get_beverage_by_size(beverage()$beverage_name, input$beverage_size)
+        )
+      )
+      
+      observeEvent(beverage()$beverage, {
+        beverage_sizes <- get_beverage_sizes(beverage()$beverage)
+        updateRadioGroupButtons(inputId = "beverage_size",
+                                choices = beverage_sizes,
+                                selected = beverage_sizes[beverage_sizes %in% c("Tall", "Doppio")])
       })
     }
   )

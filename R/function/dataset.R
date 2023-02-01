@@ -24,7 +24,7 @@ df$beverage_name <- df$beverage_prep %>%
 
 get_df_scores <- function() {
   df_scores <- df %>% 
-    dplyr::filter(size %in% c("Tall", "Solo", "Doppio"))  
+    dplyr::filter(size %in% c("Tall", "Doppio"))  
   
   return(df_scores)
 }
@@ -37,6 +37,26 @@ get_beverage <- function(df, position = 1) {
   return(
     reactive(df()[{{ position }}, ])
   )
+}
+
+get_beverage_by_size <- function(beverage_name, beverage_size) {
+  stopifnot(is.character(beverage_name))
+  stopifnot(is.character(beverage_size))
+  
+  beverage <- df %>% 
+    filter(beverage_name == .env$beverage_name &
+             size == .env$beverage_size)
+    
+  return(beverage)
+}
+
+get_beverage_sizes <- function(beverage_name) {
+  sizes <- df %>% 
+    filter(beverage == .env$beverage_name) %>%
+    pull("size") %>%
+    unique()
+  
+  return(sizes)
 }
 
 calculate_scores <- function(
@@ -54,22 +74,20 @@ calculate_scores <- function(
   stopifnot(is.numeric(sodium))
   stopifnot(is.numeric(caffeine))
   
-  df_scores <- get_df_scores()
-  
-    df_scores$score <- (
-      # FDA
-      (df_scores$total_carbohydrates_g / 300) * carbohydrates
-      # UK government
-      + (df_scores$good_fat_g / 50 - df_scores$bad_fat_g / 30) * fat
-      # UK government
-      + (df_scores$protein_g / 50) * protein
-      # AHA
-      + (df_scores$sugars_g / 35) * sugar
-      # AHA
-      + (df_scores$sodium_mg / 2300) * sodium
-      # FDA
-      + (df_scores$caffeine_mg / 400) * caffeine
+  df_scores <- get_df_scores() %>% 
+    dplyr::mutate(
+      score = (total_carbohydrates_g / 300) * carbohydrates + # FDA
+        ifelse(fat > 0, 
+               (good_fat_g / 50 - trans_fat_g / 5 - saturated_fat_g / 20),
+               total_fat_g / 80) * fat +
+        # (good_fat_g / 50 - trans_fat_g / 5 - saturated_fat_g / 20) * fat + # UK government
+        (protein_g / 50) * protein + # UK government
+        (sugars_g / 35) * sugar + # AHA
+        (sodium_mg / 2300) * sodium + # AHA
+        (caffeine_mg / 400) * caffeine # FDA
     )
-    
-    return(df_scores[order(df_scores$score, decreasing = TRUE), ])
+  
+  return(
+    df_scores[order(df_scores$score, decreasing = TRUE), ]
+  )
 }

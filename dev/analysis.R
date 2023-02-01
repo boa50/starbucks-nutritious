@@ -7,7 +7,7 @@ library(janitor)
 
 ### Question: Can you identify the most nutritious items on the menu?
 
-df <- read_csv("dataset/DataDNA Dataset Challenge -- January 2023.csv")
+df <- read_csv("data/DataDNA Dataset Challenge -- January 2023.csv")
 str(df)
 
 ### Renaming columns
@@ -116,8 +116,10 @@ df$beverage_name <- df$beverage_prep %>%
   str_replace(" \\(\\)", "")
 
 
-test_name <- "Caramel Apple Spice (Without Whipped Cream)"
-str_replace(test_name, "\\(.+\\)" , "") %>% 
-  trimws() %>% 
-  str_replace_all(., " ", "_") %>% 
-  tolower()
+### Getting beverage sizes
+test_name <- df[14, ]$beverage
+test_name <- "Brewed Coffee"
+df %>% 
+  filter(beverage == test_name) %>% 
+  pull("size") %>% 
+  unique()

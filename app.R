@@ -1,10 +1,12 @@
 library(shiny)
 library(magrittr)
+library(shinyWidgets)
 
 source("R/function/dataset.R")
 source("R/function/ui.R")
 source("R/module/nutritional_table.R")
 source("R/module/beverage.R")
+
 
 ui <- fluidPage(
   fluidRow(
