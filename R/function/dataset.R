@@ -1,26 +1,4 @@
-df <- readr::read_csv("data/DataDNA Dataset Challenge -- January 2023.csv")
-
-df <- janitor::clean_names(df)
-
-df$caffeine_mg <- as.numeric(df$caffeine_mg)
-
-df <- dplyr::mutate_all(df, ~ifelse(is.na(.), 0, .))
-
-df$size <- stringr::str_extract(df$beverage_prep, "^(Short|Tall|Grande|Venti|Solo|Doppio)")
-df <- df %>% tidyr::fill(size, .direction = "down")
-
-df <- df %>% 
-  dplyr::mutate(
-    bad_fat_g = trans_fat_g + saturated_fat_g,
-    good_fat_g = total_fat_g - bad_fat_g
-  )
-
-df$beverage_name <- df$beverage_prep %>% 
-  stringr::str_replace("^(Short|Tall|Grande|Venti|Solo|Doppio)", "") %>% 
-  trimws() %>% 
-  paste(df$beverage, " (", ., ")", sep = "") %>% 
-  trimws() %>% 
-  stringr::str_replace(" \\(\\)", "")
+df <- vroom::vroom("data/beverages.tsv")
 
 get_df_scores <- function() {
   df_scores <- df %>% 
@@ -44,7 +22,7 @@ get_beverage_by_size <- function(beverage_name, beverage_size) {
   stopifnot(is.character(beverage_size))
   
   beverage <- df %>% 
-    filter(beverage_name == .env$beverage_name &
+    dplyr::filter(beverage_name == .env$beverage_name &
              size == .env$beverage_size)
     
   return(beverage)
@@ -52,8 +30,8 @@ get_beverage_by_size <- function(beverage_name, beverage_size) {
 
 get_beverage_sizes <- function(beverage_name) {
   sizes <- df %>% 
-    filter(beverage == .env$beverage_name) %>%
-    pull("size") %>%
+    dplyr::filter(beverage == .env$beverage_name) %>%
+    dplyr::pull("size") %>%
     unique()
   
   return(sizes)
@@ -78,9 +56,8 @@ calculate_scores <- function(
     dplyr::mutate(
       score = (total_carbohydrates_g / 300) * carbohydrates + # FDA
         ifelse(fat > 0, 
-               (good_fat_g / 50 - trans_fat_g / 5 - saturated_fat_g / 20),
-               total_fat_g / 80) * fat +
-        # (good_fat_g / 50 - trans_fat_g / 5 - saturated_fat_g / 20) * fat + # UK government
+               good_fat_g / 50 - trans_fat_g / 5 - saturated_fat_g / 20,
+               total_fat_g / 80) * fat + # UK government
         (protein_g / 50) * protein + # UK government
         (sugars_g / 35) * sugar + # AHA
         (sodium_mg / 2300) * sodium + # AHA

@@ -7,7 +7,7 @@ library(janitor)
 
 ### Question: Can you identify the most nutritious items on the menu?
 
-df <- read_csv("data/DataDNA Dataset Challenge -- January 2023.csv")
+df <- read_csv("data_raw/DataDNA Dataset Challenge -- January 2023.csv")
 str(df)
 
 ### Renaming columns
@@ -96,7 +96,7 @@ get_representative_name <- function(df) {
   return(representative_names)
 }
 
-pivot_longer(df[1,], 4:18)[, c("name", "value")] %>% 
+nutritional_table <- pivot_longer(df[1,], 4:18)[, c("name", "value")] %>% 
   filter(name %in% important_nutrients) %>% 
   arrange(match(name, important_nutrients)) %>%
   mutate(`Daily Value` = get_daily_value(.),
@@ -106,6 +106,32 @@ pivot_longer(df[1,], 4:18)[, c("name", "value")] %>%
          Nutrient = as.character(get_representative_name(.)),
          Quantity = value)
 
+### Format nutrient value
+nutrient <- nutritional_table %>% 
+  filter(grepl('Caffeine', Nutrient, fixed = TRUE))
+
+case_when(
+  grepl("(g)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$value, "g"),
+  grepl("(mg)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$value, "mg"),
+  TRUE ~ as.character(nutrient$value)
+)
+
+get_nutrient_values <- function(nutritional_table, nutrient_name) {
+  nutrient <- nutritional_table %>% 
+    filter(grepl(nutrient_name, Nutrient, fixed = TRUE))
+  
+  quantity <- case_when(
+    grepl("(g)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$value, "g", sep = ""),
+    grepl("(mg)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$value, "mg", sep = ""),
+    TRUE ~ as.character(nutrient$value)
+  )
+  
+  daily_value <- nutrient %>% pull(`Daily Value`)
+  
+  return(c(quantity, daily_value))
+}
+
+get_nutrient_values(nutritional_table, "Carbo")
 
 ### Creating coffee name texts
 df$beverage_name <- df$beverage_prep %>% 

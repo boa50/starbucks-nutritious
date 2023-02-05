@@ -1,14 +1,23 @@
 library(shiny)
 library(magrittr)
 library(shinyWidgets)
+library(bslib)
+library(bsicons)
 
 source("R/function/dataset.R")
 source("R/function/ui.R")
 source("R/module/nutritional_table.R")
 source("R/module/beverage.R")
 
+app_theme <- bs_theme(version = 5)
+app_theme <- bs_add_rules(app_theme, "
+      div.nopad .value-box-area {
+        padding: .75rem;
+      }
+    ")
 
 ui <- fluidPage(
+  theme = app_theme,
   fluidRow(
     column(
       7,
