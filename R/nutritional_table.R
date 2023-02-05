@@ -25,9 +25,9 @@ get_daily_value <- function(df) {
     df$name == "caffeine_mg" ~ df$value / 400,
     TRUE ~ df$value
   )
-  
-  dv <- round(dv * 100) 
-  
+
+  dv <- round(dv * 100)
+
   return(dv)
 }
 
@@ -45,43 +45,43 @@ get_representative_name <- function(df) {
     df$name == "caffeine_mg" ~ "Caffeine (mg)",
     TRUE ~ df$name
   )
-  
+
   return(representative_names)
 }
 
 get_nutritional_table <- function(beverage) {
   stopifnot(is.data.frame(beverage))
-  
+
   df_nutrients <- tidyr::pivot_longer(beverage, 4:18)[, c("name", "value")] %>%
-    dplyr::filter(name %in% important_nutrients) %>% 
+    dplyr::filter(name %in% important_nutrients) %>%
     dplyr::arrange(match(name, important_nutrients)) %>%
     dplyr::mutate(`Daily Value` = get_daily_value(.),
-           `Daily Value` = ifelse(value == 0, 
-                                  "-", 
+           `Daily Value` = ifelse(value == 0,
+                                  "-",
                                   paste(`Daily Value`, "%", sep = "")),
            Nutrient = get_representative_name(.),
-           Quantity = as.character(value)) %>% 
+           Quantity = as.character(value)) %>%
     dplyr::select("Nutrient", "Quantity", "Daily Value")
 }
 
 get_nutritional_table_title <- function(beverage) {
   stopifnot(is.data.frame(beverage))
-  
+
   paste("<strong>", beverage$beverage_name, "Nutrients </strong>")
 }
 
 get_nutrient_values <- function(nutritional_table, nutrient_name) {
-  nutrient <- nutritional_table %>% 
+  nutrient <- nutritional_table %>%
     dplyr::filter(grepl(nutrient_name, Nutrient, fixed = TRUE))
-  
+
   quantity <- dplyr::case_when(
     grepl("(g)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$Quantity, "g", sep = ""),
     grepl("(mg)", nutrient$Nutrient, fixed = TRUE) ~ paste(nutrient$Quantity, "mg", sep = ""),
     TRUE ~ as.character(nutrient$Quantity)
   )
-  
+
   daily_value <- nutrient %>% dplyr::pull(`Daily Value`)
-  
+
   return(c(quantity, daily_value))
 }
 
@@ -98,7 +98,7 @@ nutritional_table_ui <- function(id) {
     uiOutput(ns("sodium")),
     uiOutput(ns("caffeine")),
     tableOutput(ns("nutritional_table")),
-    p("Daily values are calculated based on a 2000 calories diet", 
+    p("Daily values are calculated based on a 2000 calories diet",
       style = "color: #9e9e9e;"),
     radioGroupButtons(
       inputId = ns("beverage_size"),
@@ -111,29 +111,29 @@ nutritional_table_ui <- function(id) {
 
 nutritional_table_server <- function(id, beverage) {
   stopifnot(is.reactive(beverage))
-  
+
   moduleServer(
     id,
     function(input, output, session) {
       observe({ stopifnot(is.data.frame(beverage())) })
-      
-      output$nutritional_table_title <- renderText(  
+
+      output$nutritional_table_title <- renderText(
         get_nutritional_table_title(beverage())
       )
-      
+
       nutritional_table <- reactive(
         get_nutritional_table(
           get_beverage_by_size(beverage()$beverage_name, input$beverage_size)
         )
       )
-      
+
       render_nutrient_card <- function(nutrient_name) {
         renderUI({
           values <- get_nutrient_values(nutritional_table(), nutrient_name)
           nutrient_value_box(nutrient_name, values)
         })
       }
-      
+
       ### Cards
       output$calories <- render_nutrient_card("Calories")
       output$carbohydrates <- render_nutrient_card("Carbohydrates")
@@ -142,10 +142,10 @@ nutritional_table_server <- function(id, beverage) {
       output$sugars <- render_nutrient_card("Sugars")
       output$sodium <- render_nutrient_card("Sodium")
       output$caffeine <- render_nutrient_card("Caffeine")
-      
-      
+
+
       output$nutritional_table <- renderTable(nutritional_table())
-      
+
       observeEvent(beverage()$beverage, {
         beverage_sizes <- get_beverage_sizes(beverage()$beverage)
         updateRadioGroupButtons(inputId = "beverage_size",
