@@ -6,15 +6,17 @@ library(bslib)
 addResourcePath('www', system.file('www', package = 'starbucksNutritious'))
 
 starbucks_app <- function() {
-  app_theme <- bs_theme(version = 5)
-  app_theme <- bs_add_rules(app_theme, "
-      div.nopad .value-box-area {
-        padding: .75rem;
-      }
-    ")
+  app_theme <- bs_theme(
+    version = 5,
+    bg = "#1f3933",
+    fg = "#FDF7F7",
+    primary = "#1f3933"
+  ) %>%
+    bs_add_rules(sass::sass_file("www/styles.scss"))
 
   ui <- fluidPage(
     theme = app_theme,
+
     fluidRow(
       column(
         7,

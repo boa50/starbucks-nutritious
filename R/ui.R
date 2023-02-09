@@ -21,7 +21,8 @@ card_icon <- function(name) {
   div(img(src = file.path("www/icons/", paste(name, "_icon.svg", sep = "")),
           alt = paste(name, "_icon", sep = ""),
           height = "50",
-          width = "50"))
+          width = "50",
+          style = "opacity: 0.3;"))
 }
 
 nutrient_value_box <- function(nutrient_name, values) {

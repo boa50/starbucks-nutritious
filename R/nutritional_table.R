@@ -89,22 +89,24 @@ get_nutrient_values <- function(nutritional_table, nutrient_name) {
 nutritional_table_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    htmlOutput(ns("nutritional_table_title")),
-    uiOutput(ns("calories")),
-    uiOutput(ns("carbohydrates")),
-    uiOutput(ns("fat")),
-    uiOutput(ns("protein")),
-    uiOutput(ns("sugars")),
-    uiOutput(ns("sodium")),
-    uiOutput(ns("caffeine")),
-    tableOutput(ns("nutritional_table")),
-    p("Daily values are calculated based on a 2000 calories diet",
-      style = "color: #9e9e9e;"),
+    layout_column_wrap(
+      width = "200px",
+      uiOutput(ns("calories")),
+      uiOutput(ns("carbohydrates")),
+      uiOutput(ns("fat")),
+      uiOutput(ns("protein")),
+      uiOutput(ns("sugars")),
+      uiOutput(ns("sodium")),
+      uiOutput(ns("caffeine")),
+    ),
     radioGroupButtons(
       inputId = ns("beverage_size"),
       label = "Size",
       choices = c("Short", "Tall", "Grande", "Venti"),
-      selected = "Tall"
+      selected = "Tall",
+      size = "lg",
+      width = "100%"
+      # ,status = "beverage-sizes"
     )
   )
 }
@@ -117,9 +119,9 @@ nutritional_table_server <- function(id, beverage) {
     function(input, output, session) {
       observe({ stopifnot(is.data.frame(beverage())) })
 
-      output$nutritional_table_title <- renderText(
-        get_nutritional_table_title(beverage())
-      )
+      # output$nutritional_table_title <- renderText(
+      #   get_nutritional_table_title(beverage())
+      # )
 
       nutritional_table <- reactive(
         get_nutritional_table(
@@ -144,13 +146,15 @@ nutritional_table_server <- function(id, beverage) {
       output$caffeine <- render_nutrient_card("Caffeine")
 
 
-      output$nutritional_table <- renderTable(nutritional_table())
+      # output$nutritional_table <- renderTable(nutritional_table())
 
       observeEvent(beverage()$beverage, {
         beverage_sizes <- get_beverage_sizes(beverage()$beverage)
         updateRadioGroupButtons(inputId = "beverage_size",
                                 choices = beverage_sizes,
-                                selected = beverage_sizes[beverage_sizes %in% c("Tall", "Doppio")])
+                                selected = beverage_sizes[beverage_sizes %in% c("Tall", "Doppio")]
+                                # ,status = "beverage-sizes"
+                                )
       })
     }
   )
